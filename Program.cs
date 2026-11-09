@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
+using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
+using System.Xml.Linq;
+
 //SourceCode.Hosting.Client is used to construct more advanced connection strings 
 //this assembly can be added from the .NET references tab as SourceCode.HostClientAPI or from the file system at
 //[Program Files]\[K2 Directory]\Bin\SourceCode.HostClientAPI.dll
@@ -11,6 +15,8 @@ using SourceCode.Hosting.Client;
 //this assembly can be added from the .NET references tab as SourceCode.Workflow.Client or from the file system at
 //[Program Files]\[K2 Directory]Bin\SourceCode.Workflow.Client.dll
 using SourceCode.Workflow.Client;
+using static System.Collections.Specialized.BitVector32;
+using static SourceCode.Workflow.Client.ProcessInstance;
 
 
 namespace K2Documentation.Samples.WorkflowRuntime.WorkflowClientAPI
@@ -21,6 +27,7 @@ namespace K2Documentation.Samples.WorkflowRuntime.WorkflowClientAPI
         {
             //no implementation. Refer to the methods below for examples of K2 client API code
             //NOTE: this code will not run, it is intended only to show samples of specific API method calls.
+            K2ConnectionSamples();
         }
 
         //K2 connection opening samples
@@ -31,29 +38,106 @@ namespace K2Documentation.Samples.WorkflowRuntime.WorkflowClientAPI
 
             //simple open using only a server name. (we are using localhost for this sample, in your example use your K2 Server name or NLB server-name)
             //This is the simplest way to open a connection for the current user (Active Directory credentials) on the default workflow port (5252)
-            K2Conn.Open("[localhost]");
+            //K2Conn.Open("k2test");
 
             //creating a more advanced connection with the connection string builder
-            SourceCode.Hosting.Client.BaseAPI.SCConnectionStringBuilder K2ConnStringBuilder = new SourceCode.Hosting.Client.BaseAPI.SCConnectionStringBuilder();
-            K2ConnStringBuilder.Host = "[localhost]"; //K2 server name or the name of the DNS entry pointing to the K2 Farm
-            K2ConnStringBuilder.Authenticate = true; //specify whether to authenticate the user's credentials against the security provider. This is usually set to true
-            K2ConnStringBuilder.UserID = "[username]"; //a specific username
-            K2ConnStringBuilder.Password = "[password]";   //the user's password, unencrypted
-            K2ConnStringBuilder.Port = 5252;  //if K2 was configured to run on a non-standard port, you can specify the port number here
-            K2ConnStringBuilder.IsPrimaryLogin = true; //this is normally set to true, unless you are using cached security credentials
-            K2ConnStringBuilder.SecurityLabelName = "K2"; //if using a different security provider, specify the label of the security provider here
+            /*SourceCode.Hosting.Client.BaseAPI.SCConnectionStringBuilder K2ConnStringBuilder = new SourceCode.Hosting.Client.BaseAPI.SCConnectionStringBuilder();
+            K2ConnStringBuilder.Host = "k2test";//"192.168.200.94"; //K2 server name or the name of the DNS entry pointing to the K2 Farm
+            K2ConnStringBuilder.Port = 5555;  //if K2 was configured to run on a non-standard port, you can specify the port number here
+            K2ConnStringBuilder.Authenticate = false; //specify whether to authenticate the user's credentials against the security provider. This is usually set to true
+            K2ConnStringBuilder.CachePassword = false;
+            K2ConnStringBuilder.Integrated = true;
+            //K2ConnStringBuilder.UserID = "k2workflowtest"; //a specific username
+            //K2ConnStringBuilder.Password = "0Zl6z7@$uH7yAg4hm";   //the user's password, unencrypted
+            //K2ConnStringBuilder.IsPrimaryLogin = true; //this is normally set to true, unless you are using cached security credentials
+            //K2ConnStringBuilder.SecurityLabelName = "K2"; //if using a different security provider, specify the label of the security provider here
             //opening a K2 connection with the advanced connection string
-            K2Conn.Open(K2ConnStringBuilder.ToString());
+            //K2Conn.Open(K2ConnStringBuilder.ToString());
+            K2Conn.Open("k2test");*/
 
             //closing a connection: you must always close the K2 connection when you are done with it
-            K2Conn.Close();
+            //K2Conn.Close();
 
             //to ensure that the connection is closed and disposed, you can also wrap the connection into a using statement, like this:
             using (Connection K2Conn2 = new Connection())
             {
-                K2Conn2.Open("[servername]");
+                K2Conn2.Open("k2test");
                 //do something with the connection
                 //the connection will be closed and disposed when the using statement is done
+
+                /*Worklist K2WList = K2Conn2.OpenWorklist();
+                int numberOfTasks = K2WList.TotalCount;
+                Console.WriteLine($"Number Of Tasks {numberOfTasks}");
+
+
+                //once you have retrieved the worklist, you can iterate over the worklist items in the worklist
+                foreach (WorklistItem K2WLItem in K2WList)
+                {
+                    string serialNumber = K2WLItem.SerialNumber;
+                    string status = K2WLItem.Status.ToString();
+                    //to access more information, drill down into the relevant object contained in the worklist item
+                    string Folio = K2WLItem.ProcessInstance.Folio;
+                    List<string> actions = new List<string>();
+                    foreach (SourceCode.Workflow.Client.Action action in K2WLItem.Actions)
+                    {
+                        actions.Add(action.Name);
+                    }
+
+                    Console.WriteLine($"WorklistItem: {serialNumber} | {status} | {Folio}: ({string.Join(", ", actions)})");
+                }*/
+                try
+                {
+
+                    //WorklistItem K2WLItem = K2Conn2.OpenWorklistItem("25758_60");
+                    Worklist worklist = K2Conn2.OpenWorklist();
+
+                    if (worklist != null)
+                    {
+                        foreach (WorklistItem K2WLItem in worklist)
+                        {
+                            int ID = K2WLItem.ID;
+                            int ActivityID = K2WLItem.ActivityInstanceDestination.ActID;
+                            int ActivityInstanceID = K2WLItem.ActivityInstanceDestination.ActInstID;
+                            string ActivityName = K2WLItem.ActivityInstanceDestination.Name;
+                            DateTime StartDate = K2WLItem.EventInstance.StartDate;
+                            int ActivityInstanceDestinationID = K2WLItem.ActivityInstanceDestination.ID;
+                            int ProcessInsatnceID = K2WLItem.ProcessInstance.ID;
+                            string EventInstanceName = K2WLItem.EventInstance.Name;
+                            string AllocatedUser = K2WLItem.AllocatedUser;
+                            string Folio = K2WLItem.ProcessInstance.Folio;
+                            string serialNumber = K2WLItem.SerialNumber;
+                            string status = K2WLItem.Status.ToString();
+                            string ViewFlow = K2WLItem.ProcessInstance.ViewFlow;
+                            int Priority = K2WLItem.ProcessInstance.Priority;
+                            string Folder = K2WLItem.ProcessInstance.Folder;
+                            string Name = K2WLItem.ProcessInstance.Name;
+                            string FullName = K2WLItem.ProcessInstance.FullName;
+                            string Data = K2WLItem.Data;
+
+                            List<string> actions = new List<string>();
+                            foreach (SourceCode.Workflow.Client.Action action in K2WLItem.Actions)
+                            {
+                                actions.Add(action.Name);
+                            }
+                            string sActions = string.Join(", ", actions);
+
+                            Dictionary<string, object> datafield = new Dictionary<string, object>();
+                            foreach (DataField df in K2WLItem.ProcessInstance.DataFields)
+                            {
+                                datafield.Add(df.Name, df.Value);
+                            }
+                            string sDatafield = string.Join(" | ", datafield.Select(kvp => $"Datafield {kvp.Key}: {kvp.Value}"));
+
+                            Console.WriteLine($"WorklistItem: {ID} | {ActivityID} | {ActivityInstanceID} | {ActivityName} | {StartDate} | {ActivityInstanceDestinationID} | {ProcessInsatnceID} | {EventInstanceName} | {AllocatedUser} | {Folio} | {serialNumber} | {status} | {ViewFlow} | {ViewFlow} | {Priority} | {Folder} | {Name} | {FullName} | {Data} | ({sActions}) | ({sDatafield})");
+                        }
+                    }
+                }catch(Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                }
+
+
+                Console.ReadKey();
             }
         }
 
